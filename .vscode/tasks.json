@@ -1,0 +1,42 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+        {
+            "type": "shell",
+            "label": "Make FPPD (debug)",
+            "command": "/opt/fpp/.vscode/build.sh",
+            "args": [
+                "debug"
+            ],
+            "options": {
+                "cwd": "/opt/fpp/src"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "Make FPPD (debug)"
+        },
+        {
+            "type": "shell",
+            "label": "make clean",
+            "command": "/opt/fpp/.vscode/build.sh",
+            "args": [
+                "clean"
+            ],
+            "options": {
+                "cwd": "/opt/fpp/src"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build"
+            },
+            "detail": "make clean"
+        }
+    ]
+}

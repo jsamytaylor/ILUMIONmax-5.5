@@ -1,0 +1,39 @@
+#!/bin/bash
+
+BINDIR=$(cd $(dirname $0) && pwd)
+
+. ${BINDIR}/common
+. ${BINDIR}/functions
+
+logOutput
+
+runPreStopScripts
+
+echo "Stopping fppd"
+# Tell fppd to shut itself down
+${FPPBINDIR}/fpp -q > /dev/null 2>&1
+
+# fpp should quit because its socket was closed by fppd, but give a little
+# time to make sure fppd is down before checking.
+sleep 0.5
+COUNT=$(pgrep -x -c fppd)
+if [ ${COUNT} -ne 0 ]
+then
+   sleep 0.5
+fi
+
+# kill fppd if it is still running
+# send kill -7 first, should print a stack trace to logs to figure out why it's slow
+COUNT=$(pgrep -x -c fppd)
+if [ ${COUNT} -ne 0 ]
+then
+    killall -7 fppd
+fi
+COUNT=$(pgrep -x -c fppd)
+if [ ${COUNT} -ne 0 ]
+then
+    killall -9 fppd
+fi
+
+runPostStopScripts
+

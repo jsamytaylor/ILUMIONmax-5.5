@@ -1,0 +1,749 @@
+#!/bin/bash
+
+AttemptCreateSoftAP() {
+    TetherInterface=$(getSetting TetherInterface)
+    if [ "x${TetherInterface}" == "x" ]; then
+        TetherInterface="wlan0";
+    fi
+    if [ -e "/sys/class/net/$TetherInterface" ]; then
+        /sbin/iwconfig $TetherInterface power off || true
+    fi
+    TetherInterfaceNum=$(echo $TetherInterface | colrm 1 4)
+    if [ ! -e "/sys/class/net/SoftAp0" ]; then
+        if [ -e "/sys/class/net/$TetherInterface" ]; then
+            COMBINATIONS=$(iw "phy${TetherInterfaceNum}" info | grep "interface combinations are not supported")
+            if [ "x${COMBINATIONS}" == "x" ]; then
+                iw phy "phy${TetherInterfaceNum}" interface add "SoftAp0" type __ap
+            fi
+        fi
+    fi
+
+    if  [ "${FPPPLATFORM}" = "Raspberry Pi" ]; then
+        modprobe g_ether iManufacturer="FPP-Tether" iProduct="FPP-Tether"
+        ls /sys/class/net/
+        if [ -e "/sys/class/net/usb0" ]; then
+            ifconfig usb0 192.168.7.2 netmask 255.255.255.0
+        fi
+    fi
+}
+
+SetupFPPNetworkConfigViaConnMann() {
+
+    CONFIGS=`ls ${FPPHOME}/media/config/interface.w*; ls ${FPPHOME}/media/config/interface.e*`
+
+    DEFGW="none"
+    DNS1=""
+    DNS2=""
+    if [ -f "${FPPHOME}/media/config/dns" ]
+    then
+        . ${FPPHOME}/media/config/dns
+    fi
+    DNS=""
+    if [ "x$DNS1" != "x" ]
+    then
+        DNS="$DNS1"
+    fi
+    if [ "x$DNS2" != "x" ]
+    then
+        DNS="$DNS1,$DNS2"
+    fi
+
+    WifiRegulatoryDomain=$(getSetting WifiRegulatoryDomain)
+    if [ "$WifiRegulatoryDomain" == "" ]; then
+        WifiRegulatoryDomain="US"
+    fi
+    iw reg set "$WifiRegulatoryDomain"
+
+    TMPFILE="/var/tmp/fpp.config"
+    rm -f ${TMPFILE}
+
+    for f in $CONFIGS; do
+	unset SSID
+	unset PSK
+	unset INTERFACE
+	unset MAC
+	unset HIDDEN
+	unset PROTO
+	unset GATEWAY
+	unset NETMASK
+	unset ADDRESS
+    unset DOWAIT
+        . ${f}
+
+        # Handle the PSK differently since variable substitution is
+        # performed when sourcing the config file which prevents using a PSK
+        # with a dollar sign in it.  Rather than trying to escape/unescape
+        # things in the settings UI code, handle it here.
+        PSK=$(grep "^PSK=" ${f} | sed -e "s/^PSK=\"//" -e "s/\"$//")
+
+        DOWAIT=0
+        echo "[service_$INTERFACE]" >> ${TMPFILE}
+        if [ "x$SSID" != "x" ]
+        then
+            echo "Name=${SSID}" >> $TMPFILE
+            DOWAIT=1
+        fi
+        if [ "x$PSK" != "x" ]
+        then
+            echo "Security=psk" >> $TMPFILE
+            echo "Passphrase=${PSK}" >> $TMPFILE
+            DOWAIT=1
+        fi
+
+        if [[ "$INTERFACE" == "wl"* ]] ; then
+            echo "Type=wifi"  >> $TMPFILE
+            if [ "$HIDDEN" == "1" ]; then
+                echo "Hidden=true" >> $TMPFILE
+            fi
+        else
+            echo "Type=ethernet"  >> $TMPFILE
+        fi
+        if [ "$PROTO" = "dhcp" ]; then
+            echo "IPv4=dhcp"  >> $TMPFILE
+            if [ "x$DNS" != "x" ]; then
+                echo "Nameservers=${DNS}" >> $TMPFILE
+            fi
+        else
+            DOWAIT=1
+            if [ "x$GATEWAY" != "x" ]; then
+                echo "IPv4=$ADDRESS/$NETMASK/$GATEWAY" >> $TMPFILE
+                if [ "x$DNS" != "x" ]; then
+                    echo "Nameservers=${DNS}" >> $TMPFILE
+                fi
+            elif [ "$DEFGW" == "none" ]; then
+                echo "IPv4=$ADDRESS/$NETMASK" >> $TMPFILE
+            else
+                echo "IPv4=$ADDRESS/$NETMASK/$DEFGW" >> $TMPFILE
+            fi
+        fi
+        if [ "$DOWAIT" == "1" ]; then
+            BOOTDELAY=$(getSetting bootDelay)
+            let "BOOTDELAY=$BOOTDELAY + 10"
+            for i in {1..$BOOTDELAY}
+            do
+                # wait up to 10 seconds for interface to become available
+                if [ ! -f "/sys/class/net/${INTERFACE}/address" ]; then
+                    echo "Waiting for ${INTERFACE} to be available..."
+                    sleep 1
+                fi
+            done
+        fi
+        if [ -f "/sys/class/net/${INTERFACE}/address" ]; then
+            MACA=$(<"/sys/class/net/${INTERFACE}/address")
+            echo "MAC=${MACA}" >> $TMPFILE
+        fi
+
+        echo ""  >> $TMPFILE
+        echo ""  >> $TMPFILE
+    done
+    rm -rf /var/lib/connman/wifi_*
+    rm -rf /var/lib/connman/ethernet_*
+    rm -f /var/lib/connman/fpp.config
+    if [ -f "$TMPFILE" ]; then
+        cp $TMPFILE /var/lib/connman/fpp.config
+    fi
+    TetherEnabled=$(getSetting EnableTethering)
+    TetherTechnology=$(getSetting TetherTechnology)
+    sed -i -e 's/Tethering=true/Tethering=false/g' /var/lib/connman/settings
+    if [ -f "/etc/default/bb-wl18xx" ]; then
+        sed -i -e "s/TETHER_ENABLED=.*/TETHER_ENABLED=no/g" /etc/default/bb-wl18xx
+    fi
+    if [ "$TetherTechnology" == "1" ]; then
+        if [ "$TetherEnabled" != "1" ]; then
+            if [ "${FPPPLATFORM}" = "BeagleBone Black" ]; then
+                check_dnsmasq=$(systemctl is-enabled dnsmasq.service || true)
+                if [ "x${check_dnsmasq}" = "xdisabled" ] ; then
+                    systemctl enable dnsmasq &
+                fi
+            fi
+        elif [ "${FPPPLATFORM}" = "BeagleBone Black" ]; then
+            check_dnsmasq=$(systemctl is-enabled dnsmasq.service || true)
+            if [ "x${check_dnsmasq}" = "xenabled" ] ; then
+                systemctl disable dnsmasq &
+            fi
+        fi
+    else
+        AttemptCreateSoftAP
+    fi
+    if [ "$TetherEnabled" != "1" ]; then
+        # make sure tethering is off
+        rm -f /etc/dnsmasq.d/fpp-tether
+        ISENABLED=$(systemctl is-enabled hostapd)
+        if [ "$ISENABLED" == "enabled" ]; then
+            systemctl disable hostapd
+        fi
+    fi
+}
+SetupFPPNetworkConfig () {
+    SetupFPPNetworkConfigViaConnMann
+    ENABLEROUTING=$(getSetting EnableRouting)
+    if [ "x${ENABLEROUTING}" = "x1" ]
+    then
+        sysctl -w net.ipv4.ip_forward=1
+    else
+        sysctl -w net.ipv4.ip_forward=0
+    fi
+}
+
+WaitForInterfacesUp() {
+    IPS="$(ip -o -4 addr | grep -v usb | grep -v 127.0)"
+    if [ -z "$IPS" ]; then
+        # Loop up to 12 times, so max wait time is 12
+        for i in {1..12}
+        do
+            sleep 1
+            IPS="$(ip -o -4 addr | grep -v usb | grep -v 127.0)"
+            #echo "y:  $IPS" >> /tmp/ips.txt
+            if [ -z "$IPS" ]
+            then
+                continue
+            fi
+
+            break
+        done
+	if [ -z "$IPS" ]; then
+            #on some adapters, we need to down/up in order for connman to be able
+            #to detect the link on it and attach to wifi
+            ifconfig wlan0 down
+            sleep 1
+            ifconfig wlan0 up
+            #connmanctl scan wifi
+            # Loop up to 8 times, so max wait time is 8 * 2
+            for i in {1..8}
+            do
+               sleep 2
+               IPS="$(ip -o -4 addr | grep -v usb | grep -v 127.0)"
+               if [ -z "$IPS" ]; then
+                   continue
+               fi
+               break
+            done
+        fi
+    fi
+
+    # connmanctl services >> /tmp/services.txt
+
+    CONFIGS=`ls ${FPPHOME}/media/config/interface.w* 2> /dev/null; ls ${FPPHOME}/media/config/interface.e* 2> /dev/null`
+    for f in $CONFIGS; do
+	. ${f}
+	if [ "x$GATEWAY" != "x" ]; then
+	     DEFGW=${GATEWAY}
+	fi
+    done
+    if [ "x$DEFGW" == "x" ]; then
+        # no gateway defined
+	CURDIR=$(pwd)
+        ETHS=`ls -d ether* 2> /dev/null`
+        WIFIS=`ls -d wifi* 2> /dev/null`
+        if [ "x$WIFIS" != "x" ]; then
+            for f in $ETHS; do
+	        connmanctl move-before $WIFIS $f
+            done
+        fi
+        cd "${CURDIR}"
+    fi
+    #turn off power management on wireless... not all adapters
+    # support this so just /dev/null any output
+    iwconfig wlan0 power off 2>/dev/null >/dev/null
+}
+
+DetectNetworkModules() {
+    #if the interfaces have module drivers, we'll let Linux autoload the modules at boot to
+    #speed up the discovery/probe
+    for devicename in /sys/class/net/* ; do 
+        if [ -h "${devicename}/device/driver/module" ]; then
+            MODULELINK=$(readlink ${devicename}/device/driver/module)
+            MODULE=$(basename "${INTERFACE}/device/driver/module/${MODULELINK}" )
+
+            if [ "${MODULE}" != "brcmfmac" ]; then
+                touch /etc/modules-load.d/network.conf
+                if ! grep -Fxq "${MODULE}" /etc/modules-load.d/network.conf ; then
+                    echo "${MODULE}" >> /etc/modules-load.d/network.conf
+                fi
+            fi
+            unset MODULE
+            unset MODULELINK
+        fi
+    done
+}
+
+MaybeEnableTethering() {
+    TetherEnabled=$(getSetting EnableTethering)
+
+    if [ "x${TetherEnabled}" == "x" ]; then
+        TetherEnabled=0
+    fi
+
+    if [ "$TetherEnabled" == "0" ]; then
+        IPS="$(ip -o -4 addr | grep -v usb | grep -v 127.0)"
+        HASLINK=$(ethtool eth0 | grep "Link detected: yes")
+        if [ "x${HASLINK}" = "x" ]; then
+            # no link on eth0
+            if [ -z "$IPS" ]; then
+                #No IPS from anywhere either, lets turn on tethering
+                TetherEnabled=1
+            fi
+        fi
+    fi
+    TetherInterface=$(getSetting TetherInterface)
+    if [ "x${TetherInterface}" == "x" ]; then
+        TetherInterface="wlan0";
+    fi
+    if [ ! -e "/sys/class/net/${TetherInterface}" ]; then
+        # no wifi adapter, try wlan0
+        TetherInterface="wlan0";
+    fi
+    if [ "$TetherEnabled" == "1" ]; then
+        for i in {1..30}
+        do
+            if [ ! -e "/sys/class/net/${TetherInterface}" ]; then
+                echo "${TetherInterface} is not available, waiting..."
+                sleep 1
+            fi
+        done
+    fi
+    if [ ! -e "/sys/class/net/${TetherInterface}" ]; then
+        # no wifi adapter, no point enabling tethering
+        TetherEnabled=2
+    fi
+    if [ "$TetherEnabled" == "1" ]; then
+        TetherSSID=$(getSetting TetherSSID)
+        TetherPSK=$(getSetting TetherPSK)
+        if [ "${TetherSSID}x" == "x" ]; then
+            TetherSSID="FPP"
+        fi
+        if [ "${TetherPSK}x" == "x" ]; then
+            TetherPSK="Christmas"
+        fi
+
+        TetherTechnology=$(getSetting TetherTechnology)
+        if [ "$TetherTechnology" == "1" ]; then
+            if [ "${FPPPLATFORM}" = "BeagleBone Black" ]; then
+                systemctl disable dnsmasq
+                systemctl stop dnsmasq
+            fi
+            connmanctl tether wifi on "${TetherSSID}" "${TetherPSK}"
+        else
+            AttemptCreateSoftAP
+            if [ -e "/sys/class/net/SoftAp0" ]; then
+                TetherInterface="SoftAp0"
+            fi
+
+            systemctl stop dnsmasq
+
+cat > /etc/dnsmasq.d/fpp-tether <<-EOF
+interface=${TetherInterface}
+dhcp-range=${TetherInterface},192.168.8.2,192.168.8.20,255.255.255.0,24h
+listen-address=192.168.8.1
+dhcp-option=${TetherInterface},3
+dhcp-option=${TetherInterface},6
+EOF
+
+cat > /etc/hostapd/hostapd.conf <<-EOF
+interface=${TetherInterface}
+driver=nl80211
+wpa_passphrase=${TetherPSK}
+ssid=${TetherSSID}
+country_code=US
+hw_mode=g
+channel=11
+macaddr_acl=0
+auth_algs=3
+wpa=2
+wpa_key_mgmt=WPA-PSK
+wpa_pairwise=TKIP
+rsn_pairwise=CCMP
+wmm_enabled=0
+ignore_broadcast_ssid=0
+reassociation_deadline=3000
+pmk_r1_push=1
+ft_over_ds=0
+bss_transition=1
+wpa_group_rekey=3600
+wpa_gmk_rekey=86400
+EOF
+
+            /sbin/ifconfig ${TetherInterface} 192.168.8.1 netmask 255.255.255.0
+
+            echo 1 > /proc/sys/net/ipv4/ip_forward
+            iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE
+            iptables -A FORWARD -i eth0 -o  ${TetherInterface} -m state --state RELATED,ESTABLISHED -j ACCEPT
+            iptables -A FORWARD -i  ${TetherInterface} -o eth0 -j ACCEPT
+
+            systemctl unmask hostapd
+            systemctl start dnsmasq
+            systemctl start hostapd
+        fi
+    fi
+}
+
+#############################################################################
+# Functions for compiling and cleaning up compiled binaries
+BINARIES="fppd fpp fppmm"
+cleanCompiledBinaries() {
+    echo "in Clean stage"
+
+	if [ "x${FPPDIR}" = "x/opt/fpp" ]
+	then
+		cd ${FPPDIR}/src && ${SUDO} make clean
+	else
+		cd ${FPPDIR}/src && sudo -u ${FPPUSER} make clean
+	fi
+
+    for p in ${MEDIADIR}/plugins/*; do
+        if [ -d "$p" ]; then
+            if [ -f "${p}/Makefile" ]; then
+                echo "Cleaning plugin $p"
+                make -C "${p}" -f "${p}/Makefile" clean
+            fi
+        fi
+    done
+}
+populateCCACHE() {
+    FPPBASEVERSION=$(</etc/fpp/rfs_version)
+    FPPPLATFORM=$(cat /etc/fpp/platform 2> /dev/null)
+    MAJVER=${FPPBASEVERSION:1:1}
+    MINVER=${FPPBASEVERSION:3:2}
+    if [[ $MINVER == *"-" ]]; then
+        MINVER=${FPPBASEVERSION:3:1}
+    fi
+    if  [ "${FPPPLATFORM}" = "Raspberry Pi" ]; then
+        PLAT=Pi
+    elif [ "${FPPPLATFORM}" = "BeagleBone Black" ]; then
+        PLAT=BBB
+    else
+        echo "populateCache stopping, Unknown platform - ${FPPPLATFORM}"
+        return 0
+    fi
+    if [[ ${MAJVER} -gt 3 || ${MAJVER} -eq 3 && ${MINVER} -ge 3 ]]; then
+        #at least v3.3
+        BRANCH=$(git branch --list | grep \* | colrm 1 2)
+
+        FILETOGET="ccache-${PLAT}-${MAJVER}.x-${BRANCH}.tar.gz"
+        FULLURL="https://falconchristmas.github.io/ccache/${FILETOGET}"
+        ETAG_GIT="/tmp/etag.$$"
+        ETAG_LOCAL="/root/.ccache/etag"
+        NEEDS_UPDATED=0
+
+        echo "Checking CCACHE -  $FILETOGET - $FULLURL"
+
+        sudo test -f "$ETAG_LOCAL"
+        ETAG_LOCAL_NOTFOUND=$?
+
+        curl -I $FULLURL | grep -i etag > $ETAG_GIT
+
+        ETAG_SIZE=$(wc -c $ETAG_GIT | awk '{print $1}')
+
+        if (($ETAG_SIZE < 5)); then
+            echo "Updating CCache -- Invalid etag"
+            NEEDS_UPDATED=1
+        elif [ "$ETAG_LOCAL_NOTFOUND" == "1" ] ; then
+            echo "Updating CCache -- not cached"
+            NEEDS_UPDATED=1
+        else
+            sudo diff -q $ETAG_LOCAL $ETAG_GIT
+            rc=$?
+            if [ $rc -ne "0" ]; then
+                echo "Updating CCache - eTag has changed"
+                NEEDS_UPDATED=1
+            fi
+        fi
+
+        if [ $NEEDS_UPDATED -eq "0" ]; then
+            echo "CCache is up to date"
+            rm "$ETAG_GIT" # cleanup
+            return 0
+        fi
+
+
+        curl  -f --fail-early $FULLURL --output "/tmp/$FILETOGET"
+
+        if [ -f "/tmp/$FILETOGET" ]; then
+            sudo tar -x -z -C /root -f "/tmp/$FILETOGET"
+            rm -f "/tmp/$FILETOGET"
+            sudo mv $ETAG_GIT $ETAG_LOCAL
+            sudo chmod 644 $ETAG_LOCAL
+        fi
+    fi
+
+    # set the CCache sizes/flags that we need to be able to successfully compile
+    sudo ccache -M 250M
+    sudo ccache --set-config=temporary_dir=/tmp
+    sudo ccache --set-config=sloppiness=pch_defines,time_macros,locale
+    sudo ccache --set-config=pch_external_checksum=true
+    sudo ccache --set-config=hard_link=true
+}
+
+compileBinaries() {
+	cleanCompiledBinaries
+    populateCCACHE
+
+	# export CCACHE_LOGFILE=/tmp/cache.debug
+	export LANG=en_US.UTF-8
+	export TERM=linux
+	CPUS=$(grep "^processor" /proc/cpuinfo | wc -l)
+	if [ "x${FPPDIR}" = "x/opt/fpp" ]
+	then
+		cd ${FPPDIR}/src && ${SUDO} make clean && ${SUDO} -E make -j ${CPUS} optimized
+	else
+		cd ${FPPDIR}/src && ${SUDO} -u ${FPPUSER} make clean && sudo -u ${FPPUSER} make -j ${CPUS} optimized
+	fi
+
+    for p in ${MEDIADIR}/plugins/*; do
+        if [ -d "$p" ]; then
+            if [ -f "${p}/Makefile" ]; then
+                echo "Building plugin $p"
+                make -C "${p}" -f "${p}/Makefile" -j ${CPUS}
+            fi
+        fi
+    done
+}
+
+#############################################################################
+# Helper script for running the User hook script with a specified hook
+runUserHookScript() {
+	if [ -f "${FPPHOME}/media/scripts/UserCallbackHook.sh" ]
+	then
+		/bin/bash ${FPPHOME}/media/scripts/UserCallbackHook.sh $1
+	fi
+}
+
+#############################################################################
+# Helper scripts for running at boot time
+runBootHookScripts() {
+	runUserHookScript boot
+
+	/bin/ls -1 ${PLUGINDIR}/*/scripts/boot.sh 2> /dev/null | while read FILE
+	do
+		echo "Running: ${FILE}"
+		/bin/bash ${FILE}
+	done
+}
+
+#############################################################################
+# Helper scripts for running the User and Plugin pre/post start/stop scripts.
+# These are normally run from fppd_start and fppd_stop
+runPreStartScripts() {
+	runUserHookScript preStart
+
+	/bin/ls -1 ${PLUGINDIR}/*/scripts/preStart.sh 2> /dev/null | while read FILE
+	do
+		echo "Running: ${FILE}"
+		/bin/bash ${FILE}
+	done
+}
+
+runPostStartScripts() {
+	/bin/ls -1 ${PLUGINDIR}/*/scripts/postStart.sh 2> /dev/null | while read FILE
+	do
+		echo "Running: ${FILE}"
+		/bin/bash ${FILE}
+	done
+
+	runUserHookScript postStart
+}
+
+runPreStopScripts() {
+	runUserHookScript preStop
+
+	/bin/ls -1 ${PLUGINDIR}/*/scripts/preStop.sh 2> /dev/null | while read FILE
+	do
+		echo "Running: ${FILE}"
+		/bin/bash ${FILE}
+	done
+}
+
+runPostStopScripts() {
+	/bin/ls -1 ${PLUGINDIR}/*/scripts/postStop.sh 2> /dev/null | while read FILE
+	do
+		echo "Running: ${FILE}"
+		/bin/bash ${FILE}
+	done
+
+	runUserHookScript postStop
+}
+
+#############################################################################
+# Configure Channel Outputs
+setupChannelOutputs() {
+	if  [ "${FPPPLATFORM}" = "Raspberry Pi" ]
+	then
+		# Check for RGBMatrix channel output
+        RGBMatrix=1
+        if [ -f ${FPPHOME}/media/config/channeloutputs.json ]; then
+cat ${FPPHOME}/media/config/channeloutputs.json  2> /dev/null | python -c '
+import json,sys;
+obj=json.load(sys.stdin);
+
+for output in obj["channelOutputs"]:
+        if output["subType"] == "RGBMatrix" and output["enabled"] == 1 :
+            exit(0)
+
+exit(1)
+'
+        RGBMatrix=$?
+        fi
+
+		# RPIWS281X and onboard sound are incompatible
+        RPIWS281X=1
+        if [ -f ${FPPHOME}/media/config/co-pixelStrings.json ]; then
+cat ${FPPHOME}/media/config/co-pixelStrings.json  2> /dev/null | python -c '
+import json,sys;
+obj=json.load(sys.stdin);
+
+for output in obj["channelOutputs"]:
+        if output["type"] == "RPIWS281X" and output["enabled"] == 1 :
+            exit(0)
+
+exit(1)
+'
+		RPIWS281X=$?
+        fi
+
+		if [ ${RGBMatrix} -eq 0 -o ${RPIWS281X} -eq 0 ]
+		then
+			# Make sure onboard sound is disabled
+			if [ ! -f /etc/modprobe.d/blacklist-bcm2835.conf ]
+			then
+				echo "blacklist snd_bcm2835" | sudo tee /etc/modprobe.d/blacklist-bcm2835.conf > /dev/null
+				shutdown -r now
+			fi
+            # Preemptively load the USB sound driver so it will detect before snd-dummy is created
+            # and get the default card0 slot
+            # Minor memory usage if no USB sound device found, but otherwise OK
+            modprobe snd_usb_audio
+
+            # load the dummy sound driver so things that expect a sound device to be there will still work
+            modprobe snd-dummy
+            modprobe snd-seq-dummy
+		else
+			# Re-enable onboard sound if it is disabled
+			if [ -f /etc/modprobe.d/blacklist-bcm2835.conf ]
+			then
+				# Re-enable sound
+				rm /etc/modprobe.d/blacklist-bcm2835.conf
+				modprobe snd-bcm2835
+			fi
+            # load USB sound so it should be able to detect earlier
+            modprobe snd_usb_audio
+		fi
+	fi
+}
+
+#############################################################################
+# Detect Falcon hardware on SPI port
+detectFalconHardware() {
+	${FPPD} -H
+	FHWFOUND=$?
+
+	echo "Result: ${FHWFOUND}"
+    setSetting FalconHardwareDetected ${FHWFOUND}
+}
+
+#############################################################################
+# Check for audio control files
+checkAudioConfig() {
+	if [ ! -e /root/.libao ]
+	then
+		cat <<EOF > /root/.libao
+dev=default
+EOF
+	fi
+}
+
+#############################################################################
+# Check local time against U.S. Naval Observatory time, set if too far out
+checkTimeAgainstUSNO() {
+	# www.usno.navy.mil is not pingable, so check github.com instead
+	ping -q -c 1 github.com > /dev/null 2>&1
+
+	if [ $? -eq 0 ]
+	then
+		echo "FPP: Checking local time against U.S. Naval Observatory"
+
+		# allow clocks to differ by 24 hours to handle time zone differences
+		THRESHOLD=86400
+		USNOSECS=$(curl -m 10 -s -k https://www.usno.navy.mil/cgi-bin/time.pl | sed -e "s/.*\">//" -e "s/<\/t.*//" -e "s/...$//" -e "s/[^0-9]//g")
+
+		if [ "x${USNOSECS}" != "x" ]
+		then
+			LOCALSECS=$(date +%s)
+			MINALLOW=$(expr ${USNOSECS} - ${THRESHOLD})
+			MAXALLOW=$(expr ${USNOSECS} + ${THRESHOLD})
+
+			#echo "FPP: USNO Secs  : ${USNOSECS}"
+			#echo "FPP: Local Secs : ${LOCALSECS}"
+			#echo "FPP: Min Valid  : ${MINALLOW}"
+			#echo "FPP: Max Valid  : ${MAXALLOW}"
+
+			echo "FPP: USNO Time  : $(date --date=@${USNOSECS})"
+			echo "FPP: Local Time : $(date --date=@${LOCALSECS})"
+
+			if [ ${LOCALSECS} -gt ${MAXALLOW} -o ${LOCALSECS} -lt ${MINALLOW} ]
+			then
+				echo "FPP: Local Time is not within 24 hours of USNO time, setting to USNO time"
+				date $(date --date="@${USNOSECS}" +%m%d%H%M%Y.%S)
+
+				LOCALSECS=$(date +%s)
+				echo "FPP: New Local Time: $(date --date=@${LOCALSECS})"
+			else
+				echo "FPP: Local Time is OK"
+			fi
+		else
+			echo "FPP: Incorrect result or timeout from query to U.S. Naval Observatory"
+		fi
+	else
+		echo "FPP: Not online, unable to check time against U.S. Naval Observatory."
+	fi
+}
+
+#############################################################################
+# Configure BBB Leds
+configureBBBLeds() {
+    BBBLedPWR=$(getSetting BBBLedPWR)
+    if [ "x$BBBLedPWR" == "x0" ]; then
+        i2cset -f -y 0 0x24 0x0b 0x6e
+        i2cset -f -y 0 0x24 0x13 0x00
+        i2cset -f -y 0 0x24 0x0b 0x6e
+        i2cset -f -y 0 0x24 0x13 0x00
+    else
+        i2cset -f -y 0 0x24 0x0b 0x6e
+        i2cset -f -y 0 0x24 0x13 0x38
+        i2cset -f -y 0 0x24 0x0b 0x6e
+        i2cset -f -y 0 0x24 0x13 0x38
+    fi
+    BBBLeds0=$(getSetting BBBLeds0)
+    if [ "x$BBBLeds0" != "x" ]; then
+        echo "$BBBLeds0" > /sys/class/leds/beaglebone\:green\:usr0/trigger
+    fi
+    BBBLeds1=$(getSetting BBBLeds1)
+    if [ "x$BBBLeds1" != "x" ]; then
+        echo "$BBBLeds1" > /sys/class/leds/beaglebone\:green\:usr1/trigger
+    fi
+    BBBLeds2=$(getSetting BBBLeds2)
+    if [ "x$BBBLeds2" != "x" ]; then
+        echo "$BBBLeds2" > /sys/class/leds/beaglebone\:green\:usr2/trigger
+    fi
+    BBBLeds3=$(getSetting BBBLeds3)
+    if [ "x$BBBLeds3" != "x" ]; then
+        echo "$BBBLeds3" > /sys/class/leds/beaglebone\:green\:usr3/trigger
+    fi
+}
+
+#############################################################################
+applyScreenBlankSetting() {
+echo 0 > /sys/class/graphics/fbcon/cursor_blink
+SCREENSAVER=$(getSetting screensaver)
+if [ "x${SCREENSAVER}" = "x1" ]
+then
+        echo "FPP - Turning ON screen blanking"
+        TERM=linux setterm --clear all --blank 1  >> /dev/tty0
+        sleep 5
+        dd if=/dev/zero of=/dev/fb0 > /dev/null 2>&1
+else
+        echo "FPP - Turning OFF screen blanking"
+        TERM=linux setterm --blank 0  >> /dev/tty0
+fi
+}
+
+#############################################################################

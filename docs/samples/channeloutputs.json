@@ -1,0 +1,542 @@
+{
+	"channelOutputs": [
+		{
+			"type": "BBB48String",
+			"enabled": 0,
+			"subType": "F16-B",
+			"startChannel": 1,
+			"channelCount": 1200,
+			"outputCount": 16,
+			"outputs": [
+				{
+					"portNumber": 0,
+					"startChannel": 1,
+					"pixelCount": 100,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 1,
+					"startChannel": 301,
+					"pixelCount": 100,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 2,
+					"startChannel": 601,
+					"pixelCount": 100,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 3,
+					"startChannel": 901,
+					"pixelCount": 100,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 4,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 5,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 6,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 7,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 8,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 9,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 10,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 11,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 12,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 13,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 14,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				},
+				{
+					"portNumber": 15,
+					"startChannel": 1,
+					"pixelCount": 0,
+					"colorOrder": "RGB",
+					"nullNodes": 0,
+					"hybridMode": 0,
+					"reverse": 0,
+					"grouping": 0,
+					"zigZag": 0
+				}
+			]
+		},
+		{
+			"type": "LEDPanelMatrix",
+			"enabled": 0,
+			"startChannel": 1,
+			"channelCount": 6144,
+			"colorOrder": "RGB",
+			"panels": [
+				{
+					"outputNumber": 0,
+					"panelNumber": 6,
+					"xOffset": 0,
+					"yOffset": 0,
+					"orientation": "U",
+					"row": 0,
+					"col": 0
+				},
+				{
+					"outputNumber": 0,
+					"panelNumber": 7,
+					"xOffset": 32,
+					"yOffset": 0,
+					"orientation": "U",
+					"row": 0,
+					"col": 1
+				},
+				{
+					"outputNumber": 0,
+					"panelNumber": 0,
+					"xOffset": 64,
+					"yOffset": 0,
+					"orientation": "N",
+					"row": 0,
+					"col": 2
+				},
+				{
+					"outputNumber": 1,
+					"panelNumber": 6,
+					"xOffset": 0,
+					"yOffset": 16,
+					"orientation": "U",
+					"row": 1,
+					"col": 0
+				},
+				{
+					"outputNumber": 1,
+					"panelNumber": 7,
+					"xOffset": 32,
+					"yOffset": 16,
+					"orientation": "U",
+					"row": 1,
+					"col": 1
+				},
+				{
+					"outputNumber": 0,
+					"panelNumber": 0,
+					"xOffset": 64,
+					"yOffset": 16,
+					"orientation": "N",
+					"row": 1,
+					"col": 2
+				},
+				{
+					"outputNumber": 2,
+					"panelNumber": 6,
+					"xOffset": 0,
+					"yOffset": 32,
+					"orientation": "U",
+					"row": 2,
+					"col": 0
+				},
+				{
+					"outputNumber": 2,
+					"panelNumber": 7,
+					"xOffset": 32,
+					"yOffset": 32,
+					"orientation": "U",
+					"row": 2,
+					"col": 1
+				},
+				{
+					"outputNumber": 0,
+					"panelNumber": 0,
+					"xOffset": 64,
+					"yOffset": 32,
+					"orientation": "N",
+					"row": 2,
+					"col": 2
+				}
+			],
+			"subMatrices": [
+				{
+					"enabled": 0,
+					"startChannel": 30001,
+					"width": 32,
+					"height": 16,
+					"xOffset": 16,
+					"yOffset": 8
+				}
+			]
+
+		},
+		{
+			"type": "X11VirtualDisplay",
+			"enabled": 0,
+			"startChannel": 1,
+			"channelCount": 25000,
+			"width": 1290,
+			"height": 600,
+			"colorOrder": "BGR",
+			"pixelSize": 2,
+			"backgroundFilename": "virtualdisplaybackground.jpg"
+		},
+		{
+			"type": "FBVirtualDisplay",
+			"enabled": 0,
+			"startChannel": 1,
+			"channelCount": 25000,
+			"width": 1280,
+			"height": 720,
+			"colorOrder": "BGR",
+			"pixelSize": 2,
+			"backgroundFilename": "virtualdisplaybackground.jpg"
+		},
+		{
+			"type": "RHLDVIE131",
+			"enabled": 0,
+			"startChannel": 1,
+			"channelCount": 48000,
+			"universes": [
+				{
+					"id": 1,
+					"startChannel": 1,
+					"channelCount": 480
+				},
+				{
+					"id": 2,
+					"startChannel": 481,
+					"channelCount": 480
+				}
+			]
+		},
+		{
+			"type": "LEDPanelMatrix",
+			"subType": "ColorLight5a75",
+			"enabled": 0,
+			"startChannel": 33793,
+			"channelCount": 21504,
+			"interface": "eth1",
+			"invertedData": 0,
+			"colorOrder": "BRG",
+			"panelWidth": 32,
+			"panelHeight": 16,
+            "panels": [
+                {
+                    "outputNumber": 1,
+                    "panelNumber": 0,
+                    "xOffset": 16,
+                    "yOffset": 16,
+                    "orientation": "U",
+                    "row": 0,
+                    "col": 0
+                },
+                {
+                    "outputNumber": 1,
+                    "panelNumber": 1,
+                    "xOffset": 48,
+                    "yOffset": 16,
+                    "orientation": "U",
+                    "row": 0,
+                    "col": 1
+                },
+                {
+                    "outputNumber": 1,
+                    "panelNumber": 2,
+                    "xOffset": 80,
+                    "yOffset": 16,
+                    "orientation": "U",
+                    "row": 0,
+                    "col": 2
+                },
+                {
+                    "outputNumber": 1,
+                    "panelNumber": 3,
+                    "xOffset": 80,
+                    "yOffset": 0,
+                    "orientation": "N",
+                    "row": 1,
+                    "col": 2
+                },
+                {
+                    "outputNumber": 1,
+                    "panelNumber": 4,
+                    "xOffset": 48,
+                    "yOffset": 0,
+                    "orientation": "N",
+                    "row": 1,
+                    "col": 1
+                },
+                {
+                    "outputNumber": 1,
+                    "panelNumber": 5,
+                    "xOffset": 16,
+                    "yOffset": 0,
+                    "orientation": "N",
+                    "row": 1,
+                    "col": 1
+                },
+                {
+                    "outputNumber": 1,
+                    "panelNumber": 6,
+                    "xOffset": 0,
+                    "yOffset": 0,
+                    "orientation": "L",
+                    "row": 1,
+                    "col": 1
+                },
+                {
+                    "outputNumber": 0,
+                    "panelNumber": 0,
+                    "xOffset": 16,
+                    "yOffset": 48,
+                    "orientation": "U",
+                    "row": 2,
+                    "col": 0
+                },
+                {
+                    "outputNumber": 0,
+                    "panelNumber": 1,
+                    "xOffset": 48,
+                    "yOffset": 48,
+                    "orientation": "U",
+                    "row": 2,
+                    "col": 1
+                },
+                {
+                    "outputNumber": 0,
+                    "panelNumber": 2,
+                    "xOffset": 80,
+                    "yOffset": 48,
+                    "orientation": "U",
+                    "row": 2,
+                    "col": 2
+                },
+                {
+                    "outputNumber": 0,
+                    "panelNumber": 3,
+                    "xOffset": 80,
+                    "yOffset": 32,
+                    "orientation": "N",
+                    "row": 1,
+                    "col": 2
+                },
+                {
+                    "outputNumber": 0,
+                    "panelNumber": 4,
+                    "xOffset": 48,
+                    "yOffset": 32,
+                    "orientation": "N",
+                    "row": 1,
+                    "col": 1
+                },
+                {
+                    "outputNumber": 0,
+                    "panelNumber": 5,
+                    "xOffset": 16,
+                    "yOffset": 32,
+                    "orientation": "N",
+                    "row": 1,
+                    "col": 1
+                },
+                {
+                    "outputNumber": 0,
+                    "panelNumber": 6,
+                    "xOffset": 0,
+                    "yOffset": 32,
+                    "orientation": "L",
+                    "row": 1,
+                    "col": 1
+                }
+			]
+		},
+		{
+			"type": "LEDPanelMatrix",
+			"subType": "LinsnRV9",
+			"enabled": 0,
+			"startChannel": 33793,
+			"channelCount": 6144,
+			"interface": "eth1",
+			"sourceMAC": "d8:eb:97:b7:a9:4e",
+			"invertedData": 0,
+			"colorOrder": "GBR",
+			"panelWidth": 32,
+			"panelHeight": 16,
+            "panels": [
+                {
+                    "outputNumber": 0,
+                    "panelNumber": 0,
+                    "xOffset": 32,
+                    "yOffset": 0,
+                    "orientation": "N",
+                    "row": 0,
+                    "col": 1
+                },
+                {
+                    "outputNumber": 0,
+                    "panelNumber": 1,
+                    "xOffset": 0,
+                    "yOffset": 0,
+                    "orientation": "N",
+                    "row": 0,
+                    "col": 0
+                },
+                {
+                    "outputNumber": 1,
+                    "panelNumber": 0,
+                    "xOffset": 32,
+                    "yOffset": 16,
+                    "orientation": "N",
+                    "row": 1,
+                    "col": 1
+                },
+                {
+                    "outputNumber": 1,
+                    "panelNumber": 1,
+                    "xOffset": 0,
+                    "yOffset": 16,
+                    "orientation": "N",
+                    "row": 1,
+                    "col": 0
+                }
+			]
+		},
+		{
+			"type": "OLA",
+			"enabled": 0,
+			"startChannel": 1,
+			"channelCount": 1024,
+			"universes": [
+				{
+					"active": 1,
+					"universe": 1,
+					"startChannel": 1,
+					"channelCount": 512
+				},
+				{
+					"active": 1,
+					"universe": 3,
+					"startChannel": 512,
+					"channelCount": 512
+				}
+			]
+		}
+	]
+}

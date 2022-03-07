@@ -1,0 +1,25 @@
+While the Falcon Player (FPP) is covered under the GPL v2 license as
+indicated in the LICENSE file and source code headers, there is some
+external code included with FPP that is covered under a different license
+due to the license restrictions from the the original authors.  These
+external code sources and any license exceptions are noted below.
+==============================================================================
+
+limonade - PHP REST microframework
+
+limonade is covered by its own free software license which is included in the
+api/lib/LICENSE.limonade file.  Permission is granted for free use without
+limitations.
+
+limonade is available from https://github.com/sofadesign/limonade
+
+
+==============================================================================
+
+SheetsJS is covered by the Apache 2.0 License - https://github.com/SheetJS/sheetjs/blob/master/LICENSE
+
+==============================================================================
+
+FileSaver.js is covered by the MIT License - https://github.com/eligrey/FileSaver.js/blob/master/LICENSE.md
+
+==============================================================================

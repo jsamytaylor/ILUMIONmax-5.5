@@ -1,0 +1,34 @@
+#!/bin/bash
+
+BINDIR=$(cd $(dirname $0) && pwd)
+
+. ${BINDIR}/common
+. ${BINDIR}/functions
+
+cd ${FPPDIR}
+
+logOutput
+
+# Clear any restart flag
+sed -i -e "s/^restartFlag .*/restartFlag = 0/" ${FPPHOME}/media/settings
+
+if [ -f "/.dockerenv" ]
+then
+    echo "Setup channel outputs"
+    setupChannelOutputs
+
+    echo "Running pre-start scripts"
+    runPreStartScripts
+
+    echo "Starting ${FPPBINDIR}/fppd"
+    echo "HOME: ${FPPHOME}"
+    nice -n -20 ${FPPBINDIR}/fppd --daemonize
+
+    # FIXME, find a better way to wait until fppd is up before continuing
+    sleep 2
+
+    runPostStartScripts
+else
+    systemctl start fppd
+fi
+

@@ -1,0 +1,39 @@
+#!/bin/bash
+
+BINDIR=$(cd $(dirname $0) && pwd)
+
+. ${BINDIR}/common
+. ${BINDIR}/functions
+
+if [ "x$1" = "x" ]
+then
+	echo "USAGE: $0 VERSION"
+	exit 1
+fi
+
+teeOutput
+
+echo "$0 Upgrading FPP version to $1"
+
+echo "Stopping fppd"
+${SUDO} ${FPPDIR}/scripts/fppd_stop
+
+echo "Cleaning up any compiled binaries"
+cleanCompiledBinaries
+
+echo "Switching git branch to $1"
+if [ "x${FPPDIR}" = "x/opt/fpp" ]
+then
+	cd ${FPPDIR} && $SUDO git submodule foreach git reset --hard && $SUDO git checkout $1 && $SUDO git pull && $SUDO git submodule sync && $SUDO git submodule update --init
+else
+	cd ${FPPDIR} && sudo git submodule foreach git reset --hard && sudo -u ${FPPUSER} git checkout $1 && sudo -u ${FPPUSER} git pull && sudo -u ${FPPUSER} git submodule sync && sudo git submodule update --init
+fi
+
+sudo ${SCRIPTDIR}/upgrade_config
+
+echo "Compiling Binaries"
+compileBinaries
+
+# Delete any statistics
+/usr/bin/curl -X DELETE http://localhost/api/statistics/usage
+

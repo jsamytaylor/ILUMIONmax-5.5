@@ -1,0 +1,29 @@
+#!/bin/bash
+
+BINDIR=$(cd $(dirname $0) && pwd)
+
+. ${BINDIR}/common
+
+if [ "x$1" = "x" ]
+then
+	echo "USAGE: $0 PLUGINNAME"
+	exit 1
+fi
+
+logOutput
+
+if [ -x "${PLUGINDIR}/$1/scripts/fpp_uninstall.sh" ]
+then
+	echo "Running fpp_uninstall.sh script for $1"
+	$SUDO ${PLUGINDIR}/$1/scripts/fpp_uninstall.sh
+else
+	if [ -x "${PLUGINDIR}/$1/fpp_uninstall.sh" ]
+	then
+		echo "Running fpp_uninstall.sh script for $1"
+		$SUDO ${PLUGINDIR}/$1/fpp_uninstall.sh
+	fi
+fi
+
+echo "Uninstalling plugin $1"
+cd ${PLUGINDIR} && [ -d $1 ] && $SUDO rm -rf $1
+

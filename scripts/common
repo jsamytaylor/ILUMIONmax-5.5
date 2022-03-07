@@ -1,0 +1,127 @@
+#!/bin/bash
+
+PATH=/bin:/usr/bin:/sbin:/usr/sbin:${PATH}
+
+FPPDIR=${FPPDIR:-/opt/fpp}
+FPPHOME="/home/fpp"
+FPPUSER="fpp"
+
+FPPPLATFORM=$(cat /etc/fpp/platform 2> /dev/null)
+FPPBINDIR="${FPPDIR}/src"
+if [ "x${FPPPLATFORM}" = "xBeagleBone Black" ]
+then
+    BBBMODEL=$(cut -d' ' -f3- /proc/device-tree/model | tr '\0' '\n')
+    export BBBMODEL
+fi
+
+PATHDIRS="${FPPDIR}/scripts/:${FPPBINDIR}/"
+if [ -f "${FPPDIR}/src/fppd" -a "${FPPDIR}/src/fppd" -nt "${FPPBINDIR}/fppd" ]
+then
+	FPPBINDIR="${FPPDIR}/src"
+	PATHDIRS="${FPPDIR}/scripts/:${FPPDIR}/src/"
+fi
+FPP="${FPPBINDIR}/fpp"
+FPPD="${FPPBINDIR}/fppd"
+
+export FPPDIR
+export FPPBINDIR
+export FPPHOME
+export FPPUSER
+export PATH=${PATHDIRS}:${PATH}
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${FPPDIR}/external/RF24:${FPPDIR}/lib:${FPPDIR}/src
+
+SUDO=${SUDO:-sudo}
+SCRIPTDIR="${FPPDIR}/scripts"
+BINDIR="${FPPDIR}/scripts"
+UPGRADEDIR="${FPPDIR}/upgrade"
+MEDIADIR="${MEDIADIR:-${FPPHOME}/media}"
+LOGDIR="${MEDIADIR}/logs"
+CFGDIR="${MEDIADIR}/config"
+CFGFILE="${CFGFILE:-${MEDIADIR}/settings}"
+PLUGINDIR="${PLUGINDIR:-${FPPHOME}/media/plugins}"
+SETTINGSFILE="${SETTINGSFILE:-${FPPHOME}/media/settings}"
+FPPVERSIONFILE="${FPPVERSIONFILE:-/etc/fpp/rfs_version}"
+FPPVERSION="${FPPVERSION:-0}"
+[ -f $FPPVERSIONFILE ] && FPPVERSION="$(cat ${FPPVERSIONFILE} | sed -e "s/[^0-9]//g")"
+CFGVERSIONFILE="${CFGVERSIONFILE:-/etc/fpp/config_version}"
+CFGVERSION="${CFGVERSION:-0}"
+[ -f $CFGVERSIONFILE ] && CFGVERSION="$(cat ${CFGVERSIONFILE})"
+
+. /etc/os-release
+OSID=${ID}
+OSVER="${ID}_${VERSION_ID}"
+if [ "x${OSID}" = "xraspbian" ]
+then
+    OSVER="debian_${VERSION_ID}"
+fi
+
+
+#############################################################################
+makeLogDir() {
+	if [ ! -d ${LOGDIR} ]
+	then
+		mkdir -p ${LOGDIR}
+		chown ${FPPUSER}.${FPPUSER} ${LOGDIR}
+		chmod 775 ${LOGDIR}
+	fi
+}
+
+logOutput() {
+	MYTTY=$(tty)
+	if [ "x${MYTTY}" = "x/dev/console" -o "x${MYTTY}" = "x" -o "x${MYTTY}" = "xnot a tty" ]
+	then
+		makeLogDir
+
+		FILE=$(basename $0)
+		exec >> ${LOGDIR}/${FILE}.log 2>&1
+		echo "=========================================================================="
+		date
+	fi
+}
+
+teeOutput() {
+	MYTTY=$(tty)
+	if [ "x${MYTTY}" = "x/dev/console" -o "x${MYTTY}" = "x" -o "x${MYTTY}" = "xnot a tty" ]
+	then
+		makeLogDir
+
+		FILE=$(basename $0)
+		echo "==========================================================================" >> ${LOGDIR}/${FILE}.log
+		date >> ${LOGDIR}/${FILE}.log
+		exec > >(tee -a ${LOGDIR}/${FILE}.log)
+		exec 2>&1
+	fi
+}
+
+getSetting() {
+	SETTING=$1
+	if [ -f "${CFGFILE}" ]
+	then
+		grep -i "^${SETTING}\s*=.*" ${CFGFILE} | sed -e "s/.*=\s*//" -e 's/"//g'
+	fi
+}
+
+# getSettingInfo SETTING_NAME ATTRIBUTE_NAME
+# getSettingInfo MQTTPort restart
+# Returns empty string if attribute is not set
+getSettingInfo() {
+    SETTING=$1
+    ATTR=$2
+
+    cat /opt/fpp/www/settings.json | python -c "import sys,json; data = json.load(sys.stdin); print(data['settings']['${SETTING}']['${ATTR}'] if (('settings' in data) and ('${SETTING}' in data['settings']) and ('${ATTR}' in data['settings']['${SETTING}'])) else data['attributes']['${ATTR}'] if ('${ATTR}' in data['attributes']) else '');"
+}
+
+setSetting() {
+    SETTING=$1
+    VALUE=$2
+    if [ -f "${CFGFILE}" ]; then
+        OLD=$(getSetting $SETTING)
+        if [ "x${OLD}" = "x" ]; then
+            echo "${SETTING} = \"${VALUE}\"" >> ${CFGFILE}
+        else
+            sed -i \
+                -e '/^#\?\(\s*'"${SETTING}"'\s*=\s*\).*/{s//\1'"\"${VALUE}\""'/;:a;n;ba;q}' \
+                -e '$a'"${SETTING}"'='"\"${VALUE}\"" ${CFGFILE}
+        fi
+    fi
+}

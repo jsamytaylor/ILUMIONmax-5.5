@@ -1,0 +1,13 @@
+#!/bin/bash
+
+BINDIR=$(cd $(dirname $0) && pwd)
+
+. ${BINDIR}/common
+
+cd ${FPPDIR}/src/
+
+make clean
+
+CPUS=$(grep "^processor" /proc/cpuinfo | wc -l)
+make -j ${CPUS} optimized
+

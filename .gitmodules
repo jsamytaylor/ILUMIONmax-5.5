@@ -1,0 +1,15 @@
+[submodule "external/RF24"]
+	path = external/RF24
+	url = https://github.com/FalconChristmas/RF24.git
+	ignore = dirty
+[submodule "external/rpi-rgb-led-matrix"]
+	path = external/rpi-rgb-led-matrix
+	url = https://github.com/hzeller/rpi-rgb-led-matrix.git
+	ignore = dirty
+[submodule "external/rpi_ws281x"]
+	path = external/rpi_ws281x
+	url = https://github.com/jgarff/rpi_ws281x.git
+	ignore = dirty
+[submodule "external/spixels"]
+	path = external/spixels
+	url = https://github.com/hzeller/spixels.git

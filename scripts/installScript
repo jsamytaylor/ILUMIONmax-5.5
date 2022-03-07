@@ -1,0 +1,27 @@
+#!/bin/bash
+
+BINDIR=$(cd $(dirname $0) && pwd)
+
+. ${BINDIR}/common
+. ${BINDIR}/functions
+
+CATEGORY="$1"
+FILE="$2"
+SCRIPT="${MEDIADIR}/scripts/${FILE}"
+
+# Install the script from the fpp-scripts repository
+wget -q -O ${SCRIPT} https://raw.githubusercontent.com/FalconChristmas/fpp-scripts/master/${CATEGORY}/${FILE}
+
+# Grab out any Install Actions defined in the script and execute them
+grep "^# InstallAction:" ${SCRIPT} | sed -e "s/.*InstallAction: //" > /var/tmp/installactions.sh
+
+# Make fpp owner of the script (initially created with root as owner),
+# fixes after reboot, change owner so user can edit file straight away
+chown fpp:fpp ${SCRIPT}
+
+if [ -s /var/tmp/installactions.sh ]
+then
+	/bin/bash /var/tmp/installactions.sh
+fi
+rm /var/tmp/installactions.sh
+
