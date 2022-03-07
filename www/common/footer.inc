@@ -27,7 +27,7 @@
   </div>
 <br />
 <div class="footerLink">
-<a href="http://www.falconchristmas.com">www.falconchristmas.com</a>
+<a href="http://www.ilumion.ch">www.ilumion.ch</a>
 </div>
 
 <br />
