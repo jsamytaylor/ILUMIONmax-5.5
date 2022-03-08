@@ -766,7 +766,7 @@ if $clone_fpp; then
     fi
 
     echo "FPP - Cloning git repository into /opt/fpp"
-    git clone https://github.com/FalconChristmas/fpp fpp
+    git clone https://github.com/jsamytaylor/ILUMIONmax-5.5 fpp
 fi
 
 #######################################
