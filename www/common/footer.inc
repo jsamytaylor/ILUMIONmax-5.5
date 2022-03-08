@@ -27,7 +27,7 @@
   </div>
 <br />
 <div class="footerLink">
-<a href="http://www.ilumion.ch">www.ilumion.ch</a>
+<a href="http://www.ilumion.ch">ILUMION</a>
 </div>
 
 <br />
